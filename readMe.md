@@ -1,20 +1,16 @@
 # 通讯录插件
 获取手机通讯录，拼音排序，首字母索引，分解同一联系人的多个号码，支持单选多选
-
 ### 使用
 ```
 <template>
 	<view class="content">
 		<jContacts ref="jContacts" :mode="mode" :hashFirst="hashFirst" @confirm="contactsConfirm" @cancel="contactsCancel"></jContacts>
 		
-		<view class="uni-padding-wrap uni-common-mt">
-			<view class="uni-btn-v">
-				<button type="default" @tap="show('single')">单选模式</button>
-				<button type="default" @tap="show('multi')">多选模式</button>
-				<button type="default" @tap="chooseList = []">清除</button>
-			</view>
-		</view>
-		<view class="" v-for="(value, index) in chooseList" :key="index">
+		<button type="default" @tap="show('single')">单选模式</button>
+		<button type="default" @tap="show('multi')">多选模式</button>
+		<button type="default" @tap="chooseList = []">清除</button>
+		
+		<view class="res" v-for="(value, index) in chooseList" :key="index">
 			{{value.name}}&nbsp;&nbsp;{{value.phone}}
 		</view>
 		

@@ -3,30 +3,21 @@
 		<view class="contact-box">
 			<view class="page">
 				<scroll-view class="scrollList" scroll-y :scroll-into-view="scrollViewId" :style="{height:winHeight + 'px', width: winWidth + 'px'}">
-					<view class="uni-list">
 						<view v-for="(list, key) in lists" :key="key">
-						
 							<view v-if="list.data.length">
-								<view class="uni-list-cell-divider" :id="list.letter">
-									{{list.letter}}
-								</view>
-								<view class="uni-list-cell" v-for="(item, index) in list.data" :key="item.key"
-								 @tap="chooseItem(item)">
-										<uni-icons :type="item.choose ? 'checkbox-filled' : 'circle'" :color="item.choose ? '#007aff' : '#aaa'" size="24" style="margin-left: 20upx;"/>
-									<view class="uni-list-cell-navigate">
-										{{item.name}}&nbsp;&nbsp;{{item.phone}}
-									</view>
+								<view class="contact-divider" :id="list.id">{{list.letter}}</view>
+								<view class="contact-item" v-for="item in list.data" :key="item.key" @tap="chooseItem(item)">
+									<uni-icons :type="item.choose ? 'checkbox-filled' : 'circle'" :color="item.choose ? '#007aff' : '#aaa'" size="24"/>
+									<text>{{item.name}}&nbsp;&nbsp;{{item.phone}}</text>
 								</view>
 							</view>
 						</view>
-					</view>
 				</scroll-view>
 				
-				<!-- index bar -->
-				<view class="uni-indexed-list-bar" :class="touchmove ? 'active' : ''" @touchstart="touchStart" @touchmove.stop.prevent="touchMove" @touchend="touchEnd" @touchcancel="touchCancel">
-					<text v-for="(list, key) in lists" :key="key" class="uni-indexed-list-text" :class="touchmoveIndex == key ? 'active' : ''" :style="{height:itemHeight + 'px',lineHeight:itemHeight + 'px'}">{{list.letter}}</text>
+				<view class="index-bar" :class="touchmove ? 'active' : ''" @touchstart="touchStart" @touchmove.stop.prevent="touchMove" @touchend="touchEnd" @touchcancel="touchCancel">
+					<text v-for="(list, key) in lists" :key="key" class="index-bar-text" :class="touchmoveIndex == key ? 'active' : ''" :style="{height:itemHeight + 'px', lineHeight:itemHeight + 'px'}">{{list.letter}}</text>
 				</view>
-				<view class="uni-indexed-list-alert" v-if="indexAlert">
+				<view class="index-alert" v-if="indexAlert">
 					{{lists[touchmoveIndex].letter}}
 				</view>
 			</view>
@@ -62,15 +53,16 @@
 			return {
 				showMask: false,
 				lists: [],	// 当前页面显示的列表
+				chooseList: [],
+				
 				touchmove: false,
 				indexAlert: false,
 				touchmoveIndex: -1,
 				itemHeight: 0,
 				winHeight: 0,
 				barHeight: 0,
-				scrollViewId: "A",
 				titleHeight: 0,
-				chooseList: [],
+				scrollViewId: "A",
 			}
 		},
 	
@@ -80,18 +72,20 @@
 			show() {
 				uni.hideKeyboard()
 				this.showMask = true
-				this.winHeight = uni.getSystemInfoSync().windowHeight - 50; // 通讯录列表高度 = 页面高度（不含导航条） - 按钮高度
-				this.winWidth = uni.getSystemInfoSync().windowWidth - 24;
+				this.winHeight = uni.getSystemInfoSync().windowHeight - 46; // 通讯录列表高度 = 页面高度（不含导航条） - 按钮高度
+				this.winWidth = uni.getSystemInfoSync().windowWidth;
+				
 				if(this.lists.length == 0) { // 只获取一次
 					this.getContacts()
 				}
-			
+				
 				// 清除上次选中
-				this.lists.forEach(group => {
+				this.lists.forEach(group => { 
 					group.data.forEach(one => {
 						one.choose = false 
 					})
 				})
+				
 				this.chooseList = []
 			},
 			
@@ -99,7 +93,7 @@
 				let _this = this
 				if(this.hashFirst){
 					alphabet.unshift("#")
-				} else { // 默认
+				} else {
 					alphabet.push("#")
 				}
 				// #ifdef APP-PLUS
@@ -147,9 +141,6 @@
 					let index = alphabet.indexOf(firstChar)
 					index = index == -1 ? hashIndex : index
 					contact.phoneNumbers.forEach(phoneNumber=>{ // 获取同一联系人下的多个电话号码
-						if (!contact.displayName) { // name 不能为 null，否则localCompare 将报错
-							contact.displayName = ''
-						}
 						unsorted[index].data.push({name: contact.displayName, phone: phoneNumber.value, choose: false, key: key})
 						key ++
 					})
@@ -159,9 +150,7 @@
 				unsorted.forEach(item=>{
 					if(item.data.length > 0) {
 						// 按姓名拼音排序
-						item.data.sort((a, b)=> a.name.localeCompare(b.name, 'zh'))
-						// item.data = item.data.sort((a, b)=> a.name.localeCompare(b.name, 'zh')).map(a=> (a.name + "  "+a.phone))
-						console.log(JSON.stringify(item.data)) 
+						item.data.sort((a, b)=> a.name.localeCompare(b.name, 'zh')) // name 不能为 null，否则localCompare 将报错
 						sorted.push(item)
 					}
 				})
@@ -173,16 +162,26 @@
 			getModel() {
 				let model = []
 				alphabet.forEach(letter => {
-					model.push({"letter": letter, "data": []})
+					model.push({"letter": letter, "data": [], id: letter == "#" ? "hash" : letter})
 				})
 				return model
 			},
 			
 			confirm() {
+				this.chooseList = []
+				this.lists.forEach(group => {
+					group.data.forEach(one => {
+						if(one.choose){
+							this.chooseList.push({name: one.name, phone: one.phone})
+						}
+						
+					})
+				})
+				
 				if(this.chooseList.length == 0) {
 					uni.showToast({
 						icon: "none",
-						title: "未选择任何联系人"
+						title: "未选中任何联系人"
 					})
 				}
 				this.$emit('confirm', this.chooseList);
@@ -200,38 +199,13 @@
 								one.choose = false // 全部设为false
 							})
 						})
-						// 当前项设为true
-						item.choose = !item.choose	
-						
-						// 保存数据
-						this.chooseList = [{name: item.name, phone: item.phone}] // name 不会为 null，之前已经处理为空字符串
+						item.choose = true // 当前项设为true
 					} else { // 撤销选中
 						item.choose = false
-						// this.chooseList.pop(item.phone)
-						this.chooseList = [] // 单选模式直接清空list
 					}
-					
 				} else if(this.mode == "multi") {	// 多选模式
-					// 改变当前点击项
-					item.choose = !item.choose	
-					this.chooseList = []
-					this.lists.forEach(group => {
-						group.data.forEach(one => {
-							if(one.choose){
-								this.chooseList.push({name: one.name, phone: one.phone})
-							}
-							
-						})
-					})
-					
-					// 保存数据，或移除数据
-					// if(this.chooseList.indexOf(item.phone) > -1) {	// 已有该数据，移除
-					// 	this.chooseList.pop(item.phone)
-					// } else {
-					// 	this.chooseList.push(item.phone)
-					// }
+					item.choose = !item.choose	// 改变当前点击项
 				}
-				
 			},
 			
 			touchStart(e) {
@@ -240,7 +214,7 @@
 				let index = Math.floor((pageY - this.titleHeight) / this.itemHeight);
 				let item = this.lists[index];
 				if (item) {
-					this.scrollViewId = item.letter;
+					this.scrollViewId = item.id;
 					this.touchmoveIndex = index;
 					this.indexAlert = true
 				}
@@ -251,7 +225,7 @@
 				let index = Math.floor((pageY - this.titleHeight) / this.itemHeight);
 				let item = this.lists[index];
 				if (item) {
-					this.scrollViewId = item.letter;
+					this.scrollViewId = item.id;
 					this.touchmoveIndex = index;
 					this.indexAlert = true
 				}
@@ -271,13 +245,12 @@
 </script>
 
 <style>
-	
 	.contact-mask {
 		display: block;
 		position: fixed;
 		right: 0;
 		/* #ifdef H5 */
-		top: 43px;
+		top: 42px;
 		/* #endif */
 		/* #ifndef H5 */
 		top: 0;
@@ -285,14 +258,10 @@
 		bottom: 0;
 		align-items: center;
 		width: 100%;
-		/* background: rgba(0, 0, 0, 0.4); */
 		z-index: 100;
 	}
 
 	.contact-box {
-		/* margin: 20upx; */
-		border: 1px #f5f5f5 solid;
-		/* border-radius: 10upx; */
 		width: 100%;
 		height: 100%;
 		overflow: hidden;
@@ -305,60 +274,62 @@
 		position: relative
 	}
 	
-	.contact-button-groups {
-		text-align: center;
-		margin: 10upx;
-	}
-
-	.contact-button {
-		display:inline-block ;
-		width: 45%;
-		margin: 0 10upx;
-		font-size: 32upx;
-	}
-
-	.contact-button:after {
-		border: none;
-	}
-	
 	.scrollList {
 		flex: 1;
 		height: 100vh;
 	}
 	
-	.uni-indexed-list-bar {
+	.contact-divider {
+		width: 100%;
+		background-color: #F0F0F0;
+		padding: 10upx 20upx;
+		color: #666;
+	}
+	
+	.contact-item {
+		position: relative;
+		display: flex;
+		flex-direction: row;
+		justify-content: flex-start;
+		padding-right: 50upx;
+		margin-left: 10upx;
+		border-bottom: 1px solid #f0f0f0;
+	}
+	
+	.contact-item text {
+		padding-left: 20upx;
+		font-size: 30upx;
+		line-height: 80upx;
+	}
+	
+	
+	.index-bar {
 		width: 50upx;
-		/* height: 100vh; */
-		background-color: #f7f7f7;
+		background-color: #fff;
 		display: flex;
 		flex-direction: column;
 		position: absolute;
 		right: 0;
 		top: 50%;
 		transform: translateY(-50%);
+		box-shadow: 0 0 20upx rgba(0, 0, 0, 0.1);
+		border-radius: 10upx;
 		z-index: 20;
 	}
 	
-	.uni-indexed-list-bar.active {
-		/* background-color: lightgrey; */
-	}
-	
-	.uni-indexed-list-text {
-		color: #aaa;
+	.index-bar-text {
+		color: #666;
 		font-size: 24upx;
 		text-align: center;
 	}
 	
-	.uni-indexed-list-bar.active .uni-indexed-list-text {
-		/* color: black; */
-	}
 	
-	.uni-indexed-list-text.active,
-	.uni-indexed-list-bar.active .uni-indexed-list-text.active {
+	.index-bar-text.active,
+	.index-bar.active .index-bar-text.active {
 		color: #007AFF;
 	}
 	
-	.uni-indexed-list-alert {
+	.index-alert {
 		position: absolute;
 		z-index: 20;
 		width: 160upx;
@@ -375,8 +346,16 @@
 		background-color: rgba(0, 0, 0, 0.5);
 	}
 	
-	.uni-list-cell-navigate{
-		display: inline; text-align: left; word-break: break-all;
+	.contact-button-groups {
+		text-align: center;
+		margin-top: 10upx;
 	}
-	
+
+	.contact-button {
+		display:inline-block ;
+		width: 45%;
+		margin: 0 10upx;
+		font-size: 32upx;
+	}
+
 </style>
